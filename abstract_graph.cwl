@@ -6,10 +6,10 @@ class: Workflow
 inputs:
   fasta_sequence: 
     type: File
-  netsurfp_param1: Any
+  netsurfp_seq_database: Any 
   netsurfp_param2: Any
-  h1: Any
-  h2: Any
+  avg_prot_length: Any
+  std_prot_length: Any
 
 outputs:
   predictions: 
@@ -24,15 +24,15 @@ steps:
   run_netsurfp:
     in:
       fasta: fasta_sequence
-      param1: netsurfp_param1
-      param2: netsurfp_param2
+      database: netsurfp_seq_database # this is the underlying database for netsurfp
+      param2: netsurfp_param2 # hypothetical parameter
     out: 
       [ pssm, features ]
     run:
       class: Operation
       inputs:
         fasta: File
-        param1: Any
+        database: Any
         param2: Any
       outputs:
         pssm: File
@@ -40,8 +40,8 @@ steps:
   calculate_length:
     in: 
       fasta: fasta_sequence
-      std: h1
-      avg: h2
+      std: std_prot_length
+      avg: avg_prot_length
     out:
       [ length_features ]
     run:

@@ -3,6 +3,10 @@
 cwlVersion: v1.2
 class: Workflow
 
+hints:
+  DockerRequirement:
+    dockerPull: amancevice/pandas:1.3.4-slim # Script needs numpy which is a dependency of pandas
+
 inputs:
   fasta_sequence: 
     type: File

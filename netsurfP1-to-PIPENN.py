@@ -1,3 +1,8 @@
+"""
+This script converts NetSurfP1 output to PIPENN format
+"""
+__author__ = 'Arthur Goetzee'
+
 import pandas as pd
 
 PIPENN_COLS = ['class', 'AA', 'name', 'number', 'rel_surf_acc', 'abs_surf_acc', 'z', 'prob_helix', 'prob_sheet',

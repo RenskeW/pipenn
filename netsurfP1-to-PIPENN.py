@@ -13,6 +13,7 @@ PIPENN_COLS = ['class', 'AA', 'name', 'number', 'rel_surf_acc', 'abs_surf_acc', 
 
 parser = argparse.ArgumentParser(description='Convert netsurfP output and generate features for PIPENN')
 parser.add_argument('-f', metavar='F', type=str, action='store', help='NetsurfP output to be converted')
+parser.add_argument('-o', metavar='O', type=str, action='store', help='Output file in csv format', default='PIPENN_input.csv')
 
 
 def load_netsurfp_output(path: str = 'netsurfp_output.txt') -> pd.DataFrame:
@@ -43,7 +44,7 @@ def get_length(df: pd.DataFrame) -> pd.DataFrame:
 
 def get_uniprot_ids(df):
     raw_pdb_ids = df['name'].unique().tolist()
-    pdb_ids = {id[0:4]: id for id in raw_pdb_ids}  # Remove trailing characters
+    pdb_ids = {id[0:4]: id for id in raw_pdb_ids}  # Remove trailing characters, need this later for mapping back
     str_pdb_ids = ','.join(pdb_ids)
 
     data = {
@@ -52,9 +53,11 @@ def get_uniprot_ids(df):
         'to': "UniProtKB"
     }
 
+    # POST request
     job_req = requests.post('https://rest.uniprot.org/idmapping/run', data=data)
     jobid = json.loads(job_req.text)['jobId']
 
+    # GET request to get results
     job_res = requests.get(f'https://rest.uniprot.org/idmapping/status/{jobid}')
     results = json.loads(job_res.text)
 
@@ -73,7 +76,12 @@ def get_uniprot_ids(df):
 
 if __name__ == '__main__':
     args = parser.parse_args()
+
     df = load_netsurfp_output(args.f)
     df = get_length(df)
     df = get_uniprot_ids(df)
 
+    if not args.o.endswith('.csv'):
+        args.o += '.csv'
+
+    df.to_csv(args.o, index=False)

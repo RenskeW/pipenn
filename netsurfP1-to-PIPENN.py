@@ -4,9 +4,13 @@ This script converts NetSurfP1 output to PIPENN format
 __author__ = 'Arthur Goetzee'
 
 import pandas as pd
+import argparse
 
 PIPENN_COLS = ['class', 'AA', 'name', 'number', 'rel_surf_acc', 'abs_surf_acc', 'z', 'prob_helix', 'prob_sheet',
                'prob_coil']
+
+parser = argparse.ArgumentParser(description='Convert netsurfP output and generate features for PIPENN')
+parser.add_argument('-f', metavar='F', type=str, action='store', help='NetsurfP output to be converted')
 
 
 def load_netsurfp_output(path: str = 'netsurfp_output.txt') -> pd.DataFrame:
@@ -35,7 +39,10 @@ def get_length(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+# TODO add funtion that obtains uniprotID
+
+
 if __name__ == '__main__':
-    # TODO add argparser to specify netsurfP output path
-    df = load_netsurfp_output('netsurfp_output.txt')
+    args = parser.parse_args()
+    df = load_netsurfp_output(args.f)
     df = get_length(df)

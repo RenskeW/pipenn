@@ -5,6 +5,8 @@ __author__ = 'Arthur Goetzee'
 
 import pandas as pd
 import argparse
+import requests
+import json
 
 PIPENN_COLS = ['class', 'AA', 'name', 'number', 'rel_surf_acc', 'abs_surf_acc', 'z', 'prob_helix', 'prob_sheet',
                'prob_coil']
@@ -39,10 +41,39 @@ def get_length(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-# TODO add funtion that obtains uniprotID
+def get_uniprot_ids(df):
+    raw_pdb_ids = df['name'].unique().tolist()
+    pdb_ids = {id[0:4]: id for id in raw_pdb_ids}  # Remove trailing characters
+    str_pdb_ids = ','.join(pdb_ids)
+
+    data = {
+        'ids': str_pdb_ids,
+        'from': "PDB",
+        'to': "UniProtKB"
+    }
+
+    job_req = requests.post('https://rest.uniprot.org/idmapping/run', data=data)
+    jobid = json.loads(job_req.text)['jobId']
+
+    job_res = requests.get(f'https://rest.uniprot.org/idmapping/status/{jobid}')
+    results = json.loads(job_res.text)
+
+    mapping_dict = {}
+    for result in results['results']:
+        mapping_dict[pdb_ids[result['from']]] = result['to']['primaryAccession']
+
+    # In case of failure
+    for failed in results['failedIds']:
+        mapping_dict[pdb_ids[failed]] = 'FAILED'
+
+    mapping_df = pd.DataFrame.from_dict(data=mapping_dict, orient='index', columns=['uniprotID'])
+    df = df.merge(mapping_df, left_on='name', right_index=True)
+    return df
 
 
 if __name__ == '__main__':
     args = parser.parse_args()
     df = load_netsurfp_output(args.f)
     df = get_length(df)
+    df = get_uniprot_ids(df)
+

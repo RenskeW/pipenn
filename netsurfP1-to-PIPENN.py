@@ -4,16 +4,17 @@ This script converts NetSurfP1 output to PIPENN format
 __author__ = 'Arthur Goetzee'
 
 import pandas as pd
-import argparse
 import requests
-import json
+import argparse  # Part of std library
+import json  # Part of std library
 
 PIPENN_COLS = ['class', 'AA', 'name', 'number', 'rel_surf_acc', 'abs_surf_acc', 'z', 'prob_helix', 'prob_sheet',
                'prob_coil']
 
 parser = argparse.ArgumentParser(description='Convert netsurfP output and generate features for PIPENN')
 parser.add_argument('-f', metavar='F', type=str, action='store', help='NetsurfP output to be converted')
-parser.add_argument('-o', metavar='O', type=str, action='store', help='Output file in csv format', default='PIPENN_input.csv')
+parser.add_argument('-o', metavar='O', type=str, action='store', help='Output file in csv format',
+                    default='PIPENN_input.csv')
 
 
 def load_netsurfp_output(path: str = 'netsurfp_output.txt') -> pd.DataFrame:
@@ -42,7 +43,15 @@ def get_length(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def get_uniprot_ids(df):
+def get_uniprot_ids(df: pd.DataFrame) -> pd.DataFrame:
+    """Obtains the UniProtIDs for each of PDB ID's in the data.
+    In case of multiple results, the last result is used.
+    In case of no results, FAILURE is used.
+
+    :param df: DataFrame - NetsurfP output in DataFrame format
+    :return: Original DataFrame appended with UniprotIDs
+    """
+
     raw_pdb_ids = df['name'].unique().tolist()
     pdb_ids = {id[0:4]: id for id in raw_pdb_ids}  # Remove trailing characters, need this later for mapping back
     str_pdb_ids = ','.join(pdb_ids)

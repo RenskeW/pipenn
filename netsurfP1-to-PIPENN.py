@@ -1,5 +1,5 @@
 """
-This script converts NetSurfP1 output to PIPENN format
+This script converts NetSurfP1.1 output to PIPENN format
 """
 __author__ = 'Arthur Goetzee'
 
@@ -11,11 +11,11 @@ import json  # Part of std library
 PIPENN_COLS = ['class', 'AA', 'name', 'number', 'rel_surf_acc', 'abs_surf_acc', 'z', 'prob_helix', 'prob_sheet',
                'prob_coil']
 
-parser = argparse.ArgumentParser(description='Convert netsurfP output and generate features for PIPENN')
-parser.add_argument('-f', metavar='F', type=str, action='store', help='NetsurfP output to be converted',
+parser = argparse.ArgumentParser(description='Convert NetSurfP1.1 output and generate features for PIPENN')
+parser.add_argument('-f', metavar='F', type=str, action='store', help='NetSurfP1.1 output to be converted',
                     default='netsurfp_output.txt')
 parser.add_argument('-o', metavar='O', type=str, action='store', help='Output file in csv format',
-                    default='PIPENN_input.csv')
+                    default='PIPENN_intermediate_input.csv')
 
 
 def load_netsurfp_output(path: str) -> pd.DataFrame:
@@ -23,18 +23,18 @@ def load_netsurfp_output(path: str) -> pd.DataFrame:
     TODO Check if Reza wanted these column names
 
     :rtype: DataFrame
-    :param path: str - Path to NetsurfP output
-    :return: DataFrame - NetsurfP output in DataFrame format
+    :param path: str - Path to NetSurfP1.1 output
+    :return: DataFrame - NetSurfP1.1 output in DataFrame format
     """
     df = pd.read_fwf(path, comment='#', header=None, names=PIPENN_COLS, infer_nrows=10000)
     return df
 
 
 def get_length(df: pd.DataFrame) -> pd.DataFrame:
-    """Calculate and append sequence lengths so the NetsurfP output.
+    """Calculate and append sequence lengths so the NetSurfP1.1 output.
 
-    :param df: DataFrame - NetsurfP output in DataFrame format
-    :return: DataFrame - NetsurfP output in DataFrame format with sequence lengths
+    :param df: DataFrame - NetSurfP1.1 output in DataFrame format
+    :return: DataFrame - NetSurfP1.1 output in DataFrame format with sequence lengths
     """
 
     max_lengths = df.groupby('name')['number'].max()
@@ -49,7 +49,7 @@ def get_uniprot_ids(df: pd.DataFrame) -> pd.DataFrame:
     In case of multiple results, the last result is used.
     In case of no results, FAILURE is used.
 
-    :param df: DataFrame - NetsurfP output in DataFrame format
+    :param df: DataFrame - NetSurfP1.1 output in DataFrame format
     :return: Original DataFrame appended with UniprotIDs
     """
 

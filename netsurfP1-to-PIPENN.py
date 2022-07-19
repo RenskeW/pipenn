@@ -12,12 +12,13 @@ PIPENN_COLS = ['class', 'AA', 'name', 'number', 'rel_surf_acc', 'abs_surf_acc', 
                'prob_coil']
 
 parser = argparse.ArgumentParser(description='Convert netsurfP output and generate features for PIPENN')
-parser.add_argument('-f', metavar='F', type=str, action='store', help='NetsurfP output to be converted')
+parser.add_argument('-f', metavar='F', type=str, action='store', help='NetsurfP output to be converted',
+                    default='netsurfp_output.txt')
 parser.add_argument('-o', metavar='O', type=str, action='store', help='Output file in csv format',
                     default='PIPENN_input.csv')
 
 
-def load_netsurfp_output(path: str = 'netsurfp_output.txt') -> pd.DataFrame:
+def load_netsurfp_output(path: str) -> pd.DataFrame:
     """Loads the data in the correct format.
     TODO Check if Reza wanted these column names
 
@@ -67,6 +68,7 @@ def get_uniprot_ids(df: pd.DataFrame) -> pd.DataFrame:
     jobid = json.loads(job_req.text)['jobId']
 
     # GET request to get results
+    # TODO wait for request to be finished
     job_res = requests.get(f'https://rest.uniprot.org/idmapping/status/{jobid}')
     results = json.loads(job_res.text)
 

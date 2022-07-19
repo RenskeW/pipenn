@@ -36,7 +36,7 @@ def get_length(df: pd.DataFrame) -> pd.DataFrame:
 
     max_lengths = df.groupby('name')['number'].max()
     max_lengths.name = 'length'
-    df.merge(max_lengths, left_on='name', right_on='name')
+    df = df.merge(max_lengths, left_on='name', right_on='name')
 
     return df
 

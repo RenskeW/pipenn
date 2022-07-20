@@ -7,6 +7,7 @@ import pandas as pd
 import requests
 import argparse  # Part of std library
 import json  # Part of std library
+import time
 
 PIPENN_COLS = ['class', 'AA', 'name', 'number', 'rel_surf_acc', 'abs_surf_acc', 'z', 'prob_helix', 'prob_sheet',
                'prob_coil']
@@ -48,6 +49,8 @@ def get_uniprot_ids(df: pd.DataFrame) -> pd.DataFrame:
     """Obtains the UniProtIDs for each of PDB ID's in the data.
     In case of multiple results, the last result is used.
     In case of no results, FAILURE is used.
+    Job results are queried max 5 times, with 15 seconds of waiting time in between. Upon timeout, UniprotID column will
+    be populated with 'FAILURE' value.
 
     :param df: DataFrame - NetSurfP1.1 output in DataFrame format
     :return: Original DataFrame appended with UniprotIDs
@@ -69,12 +72,27 @@ def get_uniprot_ids(df: pd.DataFrame) -> pd.DataFrame:
 
     # GET request to get results
     # TODO wait for request to be finished
-    job_res = requests.get(f'https://rest.uniprot.org/idmapping/status/{jobid}')
+    job_res = requests.get(f'https://rest.uniprot.org/idmapping/results/{jobid}')
+
+    tries = 0
+    while job_res.status_code != 200:  # In case job is not yet ready.
+        time.sleep(15)
+        job_res = requests.get(f'https://rest.uniprot.org/idmapping/results/{jobid}')
+        tries += 1
+
+        if tries > 4:
+            print('ERROR: Request timed out. Could not get UniprotIDs!')
+            failed_dict = {id: 'FAILED' for id in raw_pdb_ids}
+            mapping_df = pd.DataFrame.from_dict(data=failed_dict, orient='index', columns=['uniprotID'])
+            df = df.merge(mapping_df, left_on='name', right_index=True)
+            return df
+
+
     results = json.loads(job_res.text)
 
     mapping_dict = {}
     for result in results['results']:
-        mapping_dict[pdb_ids[result['from']]] = result['to']['primaryAccession']
+        mapping_dict[pdb_ids[result['from']]] = result['to']
 
     # In case of failure
     for failed in results['failedIds']:

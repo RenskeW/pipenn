@@ -3,6 +3,8 @@ This script converts NetSurfP1.1 output to PIPENN format
 """
 __author__ = 'Arthur Goetzee'
 
+import re
+
 import pandas as pd
 import requests
 import argparse  # Part of std library
@@ -11,6 +13,7 @@ import time
 
 PIPENN_COLS = ['class', 'AA', 'name', 'number', 'rel_surf_acc', 'abs_surf_acc', 'z', 'prob_helix', 'prob_sheet',
                'prob_coil']
+UNIPROT_REGEX = '[OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2}'
 
 parser = argparse.ArgumentParser(description='Convert NetSurfP1.1 output and generate features for PIPENN')
 parser.add_argument('-f', metavar='F', type=str, action='store', help='NetSurfP1.1 output to be converted',
@@ -45,7 +48,7 @@ def get_length(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def get_uniprot_ids(df: pd.DataFrame) -> pd.DataFrame:
+def get_uniprot_ids(df: pd.DataFrame, has_uniprot_ids = False) -> pd.DataFrame:
     """Obtains the UniProtIDs for each of PDB ID's in the data.
     In case of multiple results, the last result is used.
     In case of no results, FAILURE is used.
@@ -56,7 +59,14 @@ def get_uniprot_ids(df: pd.DataFrame) -> pd.DataFrame:
     :return: Original DataFrame appended with UniprotIDs
     """
 
-    raw_pdb_ids = df['name'].unique().tolist()
+    mapping_dict = {}
+
+    if has_uniprot_ids:
+        global check_ids
+        mapping_dict = {id: id for id in df[check_ids]['name'].unique().tolist()}
+
+
+    raw_pdb_ids = df[~check_ids]['name'].unique().tolist()
     pdb_ids = {id[0:4]: id for id in raw_pdb_ids}  # Remove trailing characters, need this later for mapping back
     str_pdb_ids = ','.join(pdb_ids)
 
@@ -90,7 +100,6 @@ def get_uniprot_ids(df: pd.DataFrame) -> pd.DataFrame:
 
     results = json.loads(job_res.text)
 
-    mapping_dict = {}
     for result in results['results']:
         mapping_dict[pdb_ids[result['from']]] = result['to']
 
@@ -102,13 +111,19 @@ def get_uniprot_ids(df: pd.DataFrame) -> pd.DataFrame:
     df = df.merge(mapping_df, left_on='name', right_index=True)
     return df
 
+def check_name_for_uniprotID(name):
+    return bool(re.search(UNIPROT_REGEX, name))
 
 if __name__ == '__main__':
     args = parser.parse_args()
 
     df = load_netsurfp_output(args.f)
     df = get_length(df)
-    df = get_uniprot_ids(df)
+
+    check_ids = df['name'].apply(check_name_for_uniprotID)
+
+    if not check_ids.all():
+        df = get_uniprot_ids(df, check_ids.any())
 
     if not args.o.endswith('.csv'):
         args.o += '.csv'

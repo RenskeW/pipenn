@@ -15,6 +15,9 @@ import time
 PIPENN_COLS = ['class', 'AA', 'name', 'number', 'rel_surf_acc', 'abs_surf_acc', 'z', 'prob_helix', 'prob_sheet',
                'prob_coil']
 UNIPROT_REGEX = '[OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2}'
+DTYPES = {'class': 'object', 'AA': 'object', 'name':'object', 'number':'int64', 'rel_surf_acc':'float64',
+          'abs_surf_acc':'float64', 'z':'float64', 'prob_helix':'float64', 'prob_sheet':'float64', 'prob_coil':'float64'}
+
 
 parser = argparse.ArgumentParser(description='Convert NetSurfP1.1 output and generate features for PIPENN')
 parser.add_argument('-f', metavar='F', type=str, action='store', help='NetSurfP1.1 output to be converted',
@@ -31,7 +34,7 @@ def load_netsurfp_output(path: str) -> pd.DataFrame:
     :param path: str - Path to NetSurfP1.1 output
     :return: DataFrame - NetSurfP1.1 output in DataFrame format
     """
-    df = pd.read_fwf(path, comment='#', header=None, names=PIPENN_COLS, infer_nrows=10000)
+    df = pd.read_fwf(path, comment='#', header=None, names=PIPENN_COLS, infer_nrows=10000, dtype=DTYPES)
     return df
 
 
@@ -81,7 +84,6 @@ def get_uniprot_ids(df: pd.DataFrame, has_uniprot_ids=False) -> pd.DataFrame:
     jobid = json.loads(job_req.text)['jobId']
 
     # GET request to get results
-    # TODO wait for request to be finished
     job_res = requests.get(f'https://rest.uniprot.org/idmapping/results/{jobid}')
 
     tries = 0
@@ -93,7 +95,7 @@ def get_uniprot_ids(df: pd.DataFrame, has_uniprot_ids=False) -> pd.DataFrame:
         if tries > 4:
             print('ERROR: Request timed out. Could not get UniprotIDs!')
             failed_dict = {id: 'FAILED' for id in raw_pdb_ids}
-            mapping_df = pd.DataFrame.from_dict(data=failed_dict, orient='index', columns=['uniprotID'])
+            mapping_df = pd.DataFrame.from_dict(data=failed_dict, orient='index', columns=['uniprotID'], dtype='object')
             df = df.merge(mapping_df, left_on='name', right_index=True)
             return df
 
@@ -106,7 +108,7 @@ def get_uniprot_ids(df: pd.DataFrame, has_uniprot_ids=False) -> pd.DataFrame:
     for failed in results['failedIds']:
         mapping_dict[pdb_ids[failed]] = 'FAILED'
 
-    mapping_df = pd.DataFrame.from_dict(data=mapping_dict, orient='index', columns=['uniprotID'])
+    mapping_df = pd.DataFrame.from_dict(data=mapping_dict, orient='index', columns=['uniprotID'], dtype='object')
     df = df.merge(mapping_df, left_on='name', right_index=True)
     return df
 

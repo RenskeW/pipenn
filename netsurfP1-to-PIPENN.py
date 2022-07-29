@@ -1,5 +1,6 @@
 """
-This script converts NetSurfP1.1 output to PIPENN format
+This script converts NetSurfP1.1 output to an intermediate PIPENN format.
+Usage: python netsurfP1-to-PIPENN.py -f input.txt -o output.csv
 """
 __author__ = 'Arthur Goetzee'
 
@@ -48,7 +49,7 @@ def get_length(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def get_uniprot_ids(df: pd.DataFrame, has_uniprot_ids = False) -> pd.DataFrame:
+def get_uniprot_ids(df: pd.DataFrame, has_uniprot_ids=False) -> pd.DataFrame:
     """Obtains the UniProtIDs for each of PDB ID's in the data.
     In case of multiple results, the last result is used.
     In case of no results, FAILURE is used.
@@ -64,7 +65,6 @@ def get_uniprot_ids(df: pd.DataFrame, has_uniprot_ids = False) -> pd.DataFrame:
     if has_uniprot_ids:
         global check_ids
         mapping_dict = {id: id for id in df[check_ids]['name'].unique().tolist()}
-
 
     raw_pdb_ids = df[~check_ids]['name'].unique().tolist()
     pdb_ids = {id[0:4]: id for id in raw_pdb_ids}  # Remove trailing characters, need this later for mapping back
@@ -97,7 +97,6 @@ def get_uniprot_ids(df: pd.DataFrame, has_uniprot_ids = False) -> pd.DataFrame:
             df = df.merge(mapping_df, left_on='name', right_index=True)
             return df
 
-
     results = json.loads(job_res.text)
 
     for result in results['results']:
@@ -111,11 +110,20 @@ def get_uniprot_ids(df: pd.DataFrame, has_uniprot_ids = False) -> pd.DataFrame:
     df = df.merge(mapping_df, left_on='name', right_index=True)
     return df
 
-def check_name_for_uniprotID(name):
+
+def check_name_for_uniprotID(name: str) -> bool:
+    """Checks if name matches UniProtID pattern using regex. Returns True if match is found.
+    :param name: Str - ID to be checked.
+    :return: Bool - Whether the ID matched Uniprot ID pattern.
+    """
     return bool(re.search(UNIPROT_REGEX, name))
+
 
 if __name__ == '__main__':
     args = parser.parse_args()
+
+    if not args.f.endswith('.txt'):
+        args.f += '.csv'
 
     df = load_netsurfp_output(args.f)
     df = get_length(df)
